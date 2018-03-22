@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+
+
+
+<group ns="q1">
+<node name="hector_target" pkg="hector_target" type="hector_target" output="screen" >
+<rosparam command="load" file="$(find hector_target)/config/config.yaml" />
+</node>
+</group>
+
+
+</launch>

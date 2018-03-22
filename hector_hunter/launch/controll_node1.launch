@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<launch>
+
+
+
+
+
+<node name="hector_hunter" pkg="hector_hunter" type="hector_hunter" output="screen" >
+<rosparam command="load" file="$(find hector_hunter)/config/config.yaml" />
+</node>
+
+<node name="uav_devel" pkg="uav_devel" type="uav_devel" output="screen" />
+
+
+
+</launch>
