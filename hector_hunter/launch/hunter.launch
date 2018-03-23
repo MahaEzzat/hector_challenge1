@@ -2,18 +2,9 @@
 
 <launch>
 
-
 <node name="hector_hunter" pkg="hector_hunter" type="hector_hunter" output="screen" >
 <rosparam command="load" file="$(find hector_hunter)/config/config.yaml" />
 </node>
 <node name="uav_devel" pkg="uav_devel" type="uav_devel" output="screen" />
-
-<group ns="q1">
-<node name="hector_target" pkg="hector_target" type="hector_target" output="screen" >
-<rosparam command="load" file="$(find hector_target)/config/config.yaml" />
-</node>
-<node name="object" pkg="hector_target" type="object" output="screen" />
-</group>
-
 
 </launch>

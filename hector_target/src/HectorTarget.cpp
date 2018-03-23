@@ -12,14 +12,13 @@ if(!Parameters())
             ROS_ERROR("Error in loading parameters");  
             ros::shutdown();
         }
-     HectorTarget::motor_enable();
      HectorTarget::Path();
-      sub_pos = n_.subscribe("/q1/ground_truth_to_tf/pose",1,&HectorTarget::posCallback,this);   
-      sub_IMU = n_.subscribe("/q1/raw_imu",1,&HectorTarget::imuCallback,this);  
-      pub_=  n_.advertise<geometry_msgs::Twist>("/q1/cmd_vel",1);   
-      pub_mark = n_.advertise<visualization_msgs::Marker>( "/q1/visualization_marker", 1 );   
-
-    
+     HectorTarget::motor_enable();
+     sub_state = n_.subscribe("/gazebo/model_states", 1,&HectorTarget::ModelStatecallback,this); 
+     sub_pos = n_.subscribe("/q1/ground_truth_to_tf/pose",1,&HectorTarget::posCallback,this);   
+     sub_IMU = n_.subscribe("/q1/raw_imu",1,&HectorTarget::imuCallback,this);
+     pub_=  n_.advertise<geometry_msgs::Twist>("/q1/cmd_vel",1);   
+     
     }
 
     HectorTarget::~HectorTarget()
@@ -32,40 +31,31 @@ if(!Parameters())
 //Methods  
  void HectorTarget::imuCallback(const sensor_msgs::Imu &msg3)
     {
-
  tf::Quaternion bg(msg3.orientation.x,msg3.orientation.y,msg3.orientation.z,msg3.orientation.w);
  tf::Matrix3x3(bg).getRPY(roll,pitch,yaw);
-//ROS_INFO("roll: [%f]  pitch: [%f]  yaw: [%f]",roll,pitch,yaw);
-        HectorTarget::PID();
-        HectorTarget::twistmeth();
-         HectorTarget::mark();
-            pub_.publish(msg2);
-            pub_mark.publish(marker);
-
+ HectorTarget::PID();
+ HectorTarget::twistmeth();
+ pub_.publish(msg2);
     }
 
 
 void HectorTarget::twistmeth()
     {
-                   msg2.linear.x = vxi;
-                   msg2.linear.y = vyi;
-                   msg2.linear.z = vzi;
-                   msg2.angular.x = 0; 
-                   msg2.angular.y = 0; 
-                   msg2.angular.z = 0; 
-                   }
+     msg2.linear.x = vxi;
+     msg2.linear.y = vyi;
+     msg2.linear.z = vzi;
+     msg2.angular.x = 0; 
+     msg2.angular.y = 0; 
+     msg2.angular.z = 0; 
+    }
 
 
 
 void HectorTarget::posCallback(const geometry_msgs::PoseStamped &msg4)
-    {
-
+ {
   pos_x =  msg4.pose.position.x;
   pos_y =  msg4.pose.position.y;
   pos_z =  msg4.pose.position.z;
-
-//ROS_INFO("x: [%f]  y: [%f]  z: [%f]",pos_x,pos_y,pos_z);
-
   }
 
 void HectorTarget::PID()
@@ -73,7 +63,7 @@ void HectorTarget::PID()
 
 pos_targ_x = pathx[count_path];
 pos_targ_y = pathy[count_path];
-pos_targ_z = 1.0;
+pos_targ_z = pathz[count_path];
 
 
 if(count==0)
@@ -109,14 +99,13 @@ error_y = pos_targ_y-pos_y;
 error_z = pos_targ_z-pos_z;
 error = sqrt(error_x*error_x+error_y*error_y+error_z*error_z);
 
-//if(count_path<2){
 vx = kp_x*error_x + ki_x * error_i_x + kd_x *error_d_x;
 vy = kp_y*error_y + ki_y * error_i_y + kd_y *error_d_y;
 vz = kp_z*error_z + ki_z * error_i_z + kd_z *error_d_z;
 
-if( error < 0.05) {
+if( error < 0.09) {
     count_path++;
-    if(count_path>(pathx.size()-1)) count_path=0;
+    if(count_path>(pathx.size()-1)) count_path=2;
 }
 
 
@@ -138,48 +127,28 @@ void HectorTarget::Path()
 {
 
 
+ pathx.push_back(0.0);
+ pathy.push_back(0.0);
+ pathz.push_back(2.0);
+
+ pathx.push_back(0.0);
+ pathy.push_back(0.0);
+ pathz.push_back(2.0);
+
+
   while(theta<44/7){
-    theta += 0.1;
-    r=1+1*cos(2*theta);
+    theta += 0.5;
+    r=1.5;
     x = r*cos(theta);
     y = r*sin(theta);
     pathx.push_back(x);
     pathy.push_back(y); 
+    pathz.push_back(2.0);
 } 
 
- //Object_position
-/* pathx.push_back(0.0);
- pathy.push_back(0.0);
- pathx.push_back(0.0);
- pathy.push_back(0.0);
-*/
+
 
 }
-
-
-
-    void HectorTarget::mark()
-  {
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time();
-    marker.ns = "Piller";
-    
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-
-   marker.pose.position.x = piller_x;
-   marker.pose.position.y = piller_y;
-   marker.pose.position.z = piller_z;
-   marker.scale.x = 1;
-   marker.scale.y = 1;
-   marker.scale.z = 0.1;
-   marker.color.a = 1.0; // Don't forget to set the alpha!
-   marker.color.r = 0.0;
-   marker.color.g = 1.0;
-   marker.color.b = 0.0;  
-   
-  } 
-
 
 
   bool HectorTarget::Parameters()
@@ -213,5 +182,22 @@ void HectorTarget::Path()
         ROS_ERROR("Failed to enable motor!");
     }
 }
+
+
+void HectorTarget::ModelStatecallback(const gazebo_msgs::ModelStates::ConstPtr& msg_pos)
+{ 
+  object_name = msg_pos->name[count_object];
+  object_x = msg_pos->pose[count_object].position.x;
+  object_y = msg_pos->pose[count_object].position.y;
+  object_z = msg_pos->pose[count_object].position.z+0.3;
+  pathx[0] = object_x;
+  pathy[0] = object_y;
+  pathx[1] = object_x;
+  pathy[1] = object_y;
+  pathz[1] = object_z;
+
+}
+
+
 
 }

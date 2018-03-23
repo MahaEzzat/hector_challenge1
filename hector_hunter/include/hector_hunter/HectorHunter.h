@@ -4,9 +4,7 @@
 #include <ros/ros.h>
 #include <string.h>
 #include <sstream>
-#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
-#include <visualization_msgs/Marker.h>
 #include <std_srvs/SetBool.h>
 #include <math.h>
 #include <sensor_msgs/Imu.h>
@@ -16,6 +14,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <vector>
 #include <hector_uav_msgs/EnableMotors.h>
+#include <std_msgs/Int8.h>
 
 
 
@@ -36,9 +35,9 @@ namespace hector_hunter
 			ros::NodeHandle& n_;
 			ros::Subscriber sub_IMU;
 			ros::Subscriber sub_pos;
+			ros::Subscriber sub_object;
 			ros::Subscriber red_object_sub;
 			ros::Publisher  pub_;
-			ros::Publisher  pub_mark;
 			ros::ServiceClient client_motor;
 			
 			
@@ -53,17 +52,14 @@ namespace hector_hunter
 	  void imuCallback(const sensor_msgs::Imu &msg3);	
 	  void posCallback(const geometry_msgs::PoseStamped &msg4);
 	  void redobjectCallback(const geometry_msgs::Point &Red_object);
+	  void object_subCallback(const std_msgs::Int8 &msg_obj);
 	  void PID(); 
 	  void Path();
  
 
           //create arguments
-          visualization_msgs::Marker marker;
 		  geometry_msgs::Twist msg2;
-		  
-			float ref_angle;
-			float smallest_distance;
-			float piller_x=0.0,piller_y=0.0,piller_z=0.0;
+
 			double roll,yaw,pitch;
 			float roll_dot,yaw_dot,pitch_dot;
 			float vx,vy,vz;
@@ -83,11 +79,15 @@ namespace hector_hunter
 			double x,y,r;
 			double dt;
 			int count_path=0;
+			int object_number=0;
 			int count=0;
 			double theta=0.0;
             std::vector< double > pathx;
             std::vector< double > pathy;
 			std::vector< double > pathz;
+			std::vector< double > targetx;
+			std::vector< double > targety;
+			std::vector< double > targetz;
 
 			
 			 

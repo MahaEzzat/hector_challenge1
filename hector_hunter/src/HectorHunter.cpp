@@ -16,11 +16,9 @@ if(!Parameters())
      HectorHunter::Path();
       sub_pos = n_.subscribe("/ground_truth_to_tf/pose",1,&HectorHunter::posCallback,this);
       sub_IMU = n_.subscribe("/raw_imu",1,&HectorHunter::imuCallback,this);    
+      sub_object = n_.subscribe("/object_number",1,&HectorHunter::object_subCallback,this); 
       red_object_sub = n_.subscribe("/red_object",1,&HectorHunter::redobjectCallback,this);  
       pub_=  n_.advertise<geometry_msgs::Twist>("/cmd_vel",1);   
-      pub_mark = n_.advertise<visualization_msgs::Marker>("/visualization_marker", 1 );   
-
-    
     }
 
     HectorHunter::~HectorHunter()
@@ -36,55 +34,94 @@ if(!Parameters())
 
  tf::Quaternion bg(msg3.orientation.x,msg3.orientation.y,msg3.orientation.z,msg3.orientation.w);
  tf::Matrix3x3(bg).getRPY(roll,pitch,yaw);
-//ROS_INFO("roll: [%f]  pitch: [%f]  yaw: [%f]",roll,pitch,yaw);
-        HectorHunter::PID();
-        HectorHunter::twistmeth();
-         HectorHunter::mark();
-            pub_.publish(msg2);
-            pub_mark.publish(marker);
-
+ HectorHunter::PID();
+ HectorHunter::twistmeth();
     }
 
 
 void HectorHunter::twistmeth()
     {
-                   msg2.linear.x = vxi;
-                   msg2.linear.y = vyi;
-                   msg2.linear.z = vzi;
-                   msg2.angular.x = 0; 
-                   msg2.angular.y = 0; 
-                   msg2.angular.z = 0; 
-                   }
+    msg2.linear.x = vxi;
+    msg2.linear.y = vyi;
+    msg2.linear.z = vzi;
+    msg2.angular.x = 0; 
+    msg2.angular.y = 0; 
+    msg2.angular.z = 0; 
+    }
 
 
 
 void HectorHunter::posCallback(const geometry_msgs::PoseStamped &msg4)
-    {
-
+{
   pos_x =  msg4.pose.position.x;
   pos_y =  msg4.pose.position.y;
   pos_z =  msg4.pose.position.z;
-
-//ROS_INFO("x: [%f]  y: [%f]  z: [%f]",pos_x,pos_y,pos_z);
-
   }
 
+void HectorHunter::object_subCallback(const std_msgs::Int8 &msg_obj)
+{
+    object_number = msg_obj.data;
+}
 
-  void HectorHunter::redobjectCallback(const geometry_msgs::Point &Red_object)
+void HectorHunter::redobjectCallback(const geometry_msgs::Point &Red_object)
   {
-    if((Red_object.x+Red_object.y+Red_object.z)<0.1)
+
+if(object_number==0)
+{
+
+ if(targetx.size()>0)
+      {
+    if((Red_object.z<0.5) && count_path != 1)
     {
-        pathz[1]+=0.2;
+        pathx[1]=targetx[targetx.size()-1];
+        pathy[1]=targety[targety.size()-1];
+        pathz[1]=targetz[targetz.size()-1];
     }
-    else
+       if((Red_object.z<0.5) && count_path != 0)
     {
-        pathx[1]=Red_object.x;
-        pathy[1]=Red_object.y;
-        pathz[1]=Red_object.z;
+        pathx[0]=targetx[targetx.size()-1];
+        pathy[0]=targety[targety.size()-1];
+        pathz[0]=targetz[targetz.size()-1];
 
     }
+      }
 
-  }
+        if((error < 0.05) && (Red_object.z<0.5))
+        {
+            msg2.linear.x = 0;
+            msg2.linear.y = 0;
+            msg2.linear.z = 0;
+            msg2.angular.x = 0; 
+            msg2.angular.y = 0;
+            msg2.angular.z = cos(pitch)*cos(roll)*5.0;
+        }
+        
+      
+
+    if(Red_object.z>0.5)
+    {
+        if((Red_object.x-pos_x)>0)  targetx.push_back(Red_object.x-0.45);
+        else targetx.push_back(Red_object.x+0.45);
+        if((Red_object.y-pos_y)>0)  targety.push_back(Red_object.y-0.45);
+        else targety.push_back(Red_object.y+0.45);
+        targetz.push_back(Red_object.z);
+
+
+        pathx[1]=pathx[0]=targetx[targetx.size()-1];
+        pathy[1]=pathy[0]=targety[targety.size()-1];
+        pathz[1]=pathz[0]=targetz[targetz.size()-1];
+    }
+ } 
+
+ else 
+ {
+     pathx[1]=pathx[0]=-2.0;
+     pathy[1]=pathy[0]=-2.0;
+     pathz[1]=pathz[0]=1.0; 
+ }
+
+   pub_.publish(msg2);
+}
 
 void HectorHunter::PID()
 {
@@ -127,7 +164,6 @@ error_y = pos_targ_y-pos_y;
 error_z = pos_targ_z-pos_z;
 error = sqrt(error_x*error_x+error_y*error_y+error_z*error_z);
 
-//if(count_path<2){
 vx = kp_x*error_x + ki_x * error_i_x + kd_x *error_d_x;
 vy = kp_y*error_y + ki_y * error_i_y + kd_y *error_d_y;
 vz = kp_z*error_z + ki_z * error_i_z + kd_z *error_d_z;
@@ -154,45 +190,13 @@ vzi = -cos(roll)*sin(pitch)*vx  +  sin(roll)*vy   + cos(pitch)*cos(roll)*vz;
 
 void HectorHunter::Path()
 {
-
-
- //Object_position
  pathx.push_back(0.0);
  pathy.push_back(0.0);
- pathz.push_back(1.0);
+ pathz.push_back(2.0);
  pathx.push_back(0.0);
  pathy.push_back(0.0);
- pathz.push_back(0.5);
-
-
-
-
+ pathz.push_back(2.0);
 }
-
-
-
-    void HectorHunter::mark()
-  {
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time();
-    marker.ns = "Piller";
-    
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-
-   marker.pose.position.x = piller_x;
-   marker.pose.position.y = piller_y;
-   marker.pose.position.z = piller_z;
-   marker.scale.x = 1;
-   marker.scale.y = 1;
-   marker.scale.z = 0.1;
-   marker.color.a = 1.0; // Don't forget to set the alpha!
-   marker.color.r = 0.0;
-   marker.color.g = 1.0;
-   marker.color.b = 0.0;  
-   
-  } 
-
 
 
   bool HectorHunter::Parameters()
