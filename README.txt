@@ -18,3 +18,6 @@ How to run it:
 11.in new terminal cd catkin_ws
 12.source devel/setup.bash
 13.roslaunch hector_hunter hector_hunter.launch
+
+Video link:
+https://www.youtube.com/watch?v=zY0xxevXzww&list=PLsQg1LQa63kDVPgswaw-mNshjz-HAWOF6&index=4
