@@ -22,4 +22,6 @@ How to run it: <br />
 13.roslaunch hector_hunter hector_hunter.launch <br /> 
 
 Video link: <br /> 
-https://www.youtube.com/watch?v=zY0xxevXzww&list=PLsQg1LQa63kDVPgswaw-mNshjz-HAWOF6&index=4
+https://www.youtube.com/watch?v=zY0xxevXzww&list=PLsQg1LQa63kDVPgswaw-mNshjz-HAWOF6&index=4 <br /> 
+RVIZ: <br /> 
+https://www.youtube.com/watch?v=3YuJ6M7b4qo&list=PLsQg1LQa63kDVPgswaw-mNshjz-HAWOF6&index=3
